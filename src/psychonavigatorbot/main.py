@@ -1,8 +1,8 @@
 import asyncio
 from aiogram import Dispatcher, Bot, Router
 
-from handlers.start import router
-from config import get_bot_token
+from psychonavigatorbot.handlers import setup_router
+from psychonavigatorbot.config import get_settings
 
 
 def create_dispatcher(r: Router) -> Dispatcher:
@@ -13,8 +13,10 @@ def create_dispatcher(r: Router) -> Dispatcher:
 
 
 async def main():
-    bot = Bot(token=get_bot_token())
-    dispatcher = create_dispatcher(router)
+    settings = get_settings()
+
+    bot = Bot(token=settings.bot_token)
+    dispatcher = create_dispatcher(setup_router())
     await dispatcher.start_polling(bot)
 
 
