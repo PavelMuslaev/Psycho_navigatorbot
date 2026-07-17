@@ -31,6 +31,6 @@ async def start(message: Message):
 @router.callback_query(F.data == "void")
 async def display_void(cq: CallbackQuery):
     await cq.message.answer(
-        f"Технические работы👷🚧👷‍♂️.\nУважаемый(ая), мы всё исправим!\n"
+        "Технические работы👷🚧👷‍♂️.\nУважаемый(ая), мы всё исправим!\n"
     )
     await cq.answer()

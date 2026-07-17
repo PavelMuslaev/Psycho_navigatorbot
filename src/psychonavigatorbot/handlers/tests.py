@@ -36,6 +36,6 @@ async def display_tests(cq: CallbackQuery):
             commands = create_inline_markup({test["name"]: test["id"] for test in tests})
             await cq.message.answer(text, parse_mode="html", reply_markup=commands)
         else:
-            await cq.message.answer(f"БЕДА!")
+            await cq.message.answer("БЕДА!")
     finally:
         await cq.answer()
