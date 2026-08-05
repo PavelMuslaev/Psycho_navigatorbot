@@ -1,14 +1,23 @@
 import aiohttp
-from psychonavigatorbot.config import get_settings
-from psychonavigatorbot.models.test import Test
+from pydantic import TypeAdapter
+from psychonavigatorbot.config import Settings
+from psychonavigatorbot.models.test import Questionnaire,TestSummary
 
 
-async def get_tests() -> list[Test] | None:
-    settings = get_settings()
-    url = f"{settings.api_base_url}/tests/"
+class QuestionnaireApiClient:
+    def __init__(self, settings: Settings, session: aiohttp.ClientSession):
+        self.url = f"{settings.api_base_url}/tests"
+        self.session = session
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status == 200:
-                return await response.json()
-            return None
+    async def get_tests(self) -> tuple[TestSummary, ...]:
+        async with self.session.get(self.url) as response:
+            if response.status != 200:
+                raise ValueError(f"Request failed with status code {response.status}")
+            return TypeAdapter(tuple[TestSummary]).validate_python(await response.json())
+
+    async def get_questionnaire(self, questionnaire_id: str) -> Questionnaire:
+        async with self.session.get(f"{self.url}/{questionnaire_id}") as response:
+            if response.status != 200:
+                raise ValueError(f"Request failed with status code {response.status}")
+            return Questionnaire.model_validate(await response.json())
+

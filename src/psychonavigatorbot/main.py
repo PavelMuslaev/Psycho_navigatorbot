@@ -1,8 +1,10 @@
 import asyncio
 from aiogram import Dispatcher, Bot, Router
+from aiohttp import ClientSession
 
-from psychonavigatorbot.handlers import setup_router
+from psychonavigatorbot.routers import setup_router
 from psychonavigatorbot.config import get_settings
+from services.tests_api import QuestionnaireApiClient
 
 
 def create_dispatcher(r: Router) -> Dispatcher:
@@ -14,6 +16,7 @@ def create_dispatcher(r: Router) -> Dispatcher:
 
 async def main():
     settings = get_settings()
+    api_client = QuestionnaireApiClient(settings, ClientSession(timeout=5))
 
     bot = Bot(token=settings.bot_token)
     dispatcher = create_dispatcher(setup_router())
