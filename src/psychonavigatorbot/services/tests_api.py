@@ -1,3 +1,4 @@
+import json
 import aiohttp
 from pydantic import TypeAdapter, ValidationError
 
@@ -27,7 +28,9 @@ class QuestionnaireApiClient:
             ) from e
 
     async def get_questionnaire(self, questionnaire_id: int) -> Questionnaire:
-        response = await self._get_json(f"{self._url}/tests/{questionnaire_id}")
+        response = await self._get_json(
+            f"{self._url}/tests/{questionnaire_id}", questionnaire_id=questionnaire_id
+        )
         try:
             return Questionnaire.model_validate(response)
         except ValidationError as e:
@@ -43,21 +46,33 @@ class QuestionnaireApiClient:
     ) -> object:
         try:
             async with self._session.get(url) as response:
-                self._check_status_code(response.status, url, questionnaire_id)
+                self._check_status_code(
+                    response.status,
+                    url,
+                    questionnaire_id,
+                )
+
+                try:
+                    return await response.json()
+                except (
+                    aiohttp.ContentTypeError,
+                    json.JSONDecodeError,
+                ) as error:
+                    raise ApiContractError(
+                        url,
+                        status=response.status,
+                        extra_message="API returned invalid JSON",
+                    ) from error
         except TimeoutError as e:
             raise ApiUnavailableError(
                 url,
-                status=response.status,
                 extra_message="Questionnaire API request timed out",
             ) from e
         except aiohttp.ClientError as e:
             raise ApiUnavailableError(
                 url,
-                status=response.status,
                 extra_message="Failed to connect to Questionnaire API",
             ) from e
-        else:
-            return await response.json()
 
     @staticmethod
     def _check_status_code(status: int, url: str, questionnaire_id: int | None) -> None:
