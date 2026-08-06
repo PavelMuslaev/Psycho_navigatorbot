@@ -1,33 +1,28 @@
-from pydantic import (
-    BaseModel,
-    Field,
-    field_validator,
-    ValidationError,
-    ValidationInfo
-)
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
+
 
 class Question(BaseModel):
     id: int = Field(ge=1)
     text: str
 
-    @field_validator('text')
+    @field_validator("text")
     @classmethod
     def non_empty_validator(cls, value: str, info: ValidationInfo):
-        if normalized := value.strip():
-            raise ValidationError(f"{info.field_name} can not be empty.")
+        if not (normalized := value.strip()):
+            raise ValueError(f"{info.field_name} can not be empty.")
         return normalized
+
 
 class AnswerOption(BaseModel):
     id: int = Field(ge=1)
-    text: str
+    label: str
 
-    @field_validator('text')
+    @field_validator("label")
     @classmethod
     def non_empty_validator(cls, value: str, info: ValidationInfo):
-        if normalized := value.strip():
-            raise ValidationError(f"{info.field_name} can not be empty.")
+        if not (normalized := value.strip()):
+            raise ValueError(f"{info.field_name} can not be empty.")
         return normalized
-
 
 
 class TestSummary(BaseModel):
@@ -42,6 +37,7 @@ class TestSummary(BaseModel):
             raise ValueError(f"{info.field_name} can not be empty.")
         return normalized
 
+
 class Questionnaire(TestSummary):
     instructions: str = Field(description="Instructions of the test.")
     answer_scale: list[AnswerOption] = Field(description="Answer scales of the test.")
@@ -50,9 +46,9 @@ class Questionnaire(TestSummary):
     @field_validator("instructions")
     @classmethod
     def validate_instructions(
-            cls,
-            value: str,
-            info: ValidationInfo,
+        cls,
+        value: str,
+        info: ValidationInfo,
     ) -> str:
         if not (normalized := value.strip()):
             raise ValueError(f"{info.field_name} can not be empty.")

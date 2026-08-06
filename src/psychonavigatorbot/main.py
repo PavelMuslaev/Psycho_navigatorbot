@@ -4,7 +4,7 @@ from aiohttp import ClientSession
 
 from psychonavigatorbot.routers import setup_router
 from psychonavigatorbot.config import get_settings
-from services.tests_api import QuestionnaireApiClient
+from psychonavigatorbot.services.tests_api import QuestionnaireApiClient
 
 
 def create_dispatcher(r: Router) -> Dispatcher:

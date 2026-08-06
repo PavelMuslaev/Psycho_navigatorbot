@@ -13,5 +13,3 @@ def test_config(mock_getenv):
     assert hasattr(settings, "api_base_url")
     assert settings.api_base_url == "test"
     assert settings.bot_token == "test"
-
-
