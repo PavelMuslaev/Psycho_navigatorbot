@@ -14,7 +14,7 @@ class Question(BaseModel):
 
 
 class AnswerOption(BaseModel):
-    id: int = Field(ge=1)
+    value: int = Field(ge=1)
     label: str
 
     @field_validator("label")
