@@ -19,23 +19,23 @@ class QuestionnaireApiClient:
         self._session = session
 
     async def get_tests(self) -> list[TestSummary]:
-        response = await self._get_json(f"{self._url}/tests")
+        url = f"{self._url}/tests"
+        response = await self._get_json(url)
         try:
             return TEST_ADAPTER.validate_python(response)
         except ValidationError as e:
             raise ApiContractError(
-                f"{self._url}/tests", extra_message="API returned an invalid test list"
+                url, extra_message="API returned an invalid test list"
             ) from e
 
     async def get_questionnaire(self, questionnaire_id: int) -> Questionnaire:
-        response = await self._get_json(
-            f"{self._url}/tests/{questionnaire_id}", questionnaire_id=questionnaire_id
-        )
+        url = f"{self._url}/tests/{questionnaire_id}"
+        response = await self._get_json(url, questionnaire_id=questionnaire_id)
         try:
             return Questionnaire.model_validate(response)
         except ValidationError as e:
             raise ApiContractError(
-                f"{self._url}/tests",
+                url,
                 extra_message="API returned an invalid questionnaire",
             ) from e
 

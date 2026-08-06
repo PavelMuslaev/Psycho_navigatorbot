@@ -1,58 +1,29 @@
-from pydantic import BaseModel, Field, field_validator, ValidationInfo, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 
 
-class Question(BaseModel):
+class ApiModel(BaseModel):
+    """Базовая модель данных, получаемых от API."""
+
+    model_config = ConfigDict(strict=True, str_strip_whitespace=True)
+
+
+class Question(ApiModel):
     id: int = Field(ge=1)
-    text: str
-
-    @field_validator("text")
-    @classmethod
-    def non_empty_validator(cls, value: str, info: ValidationInfo):
-        if not (normalized := value.strip()):
-            raise ValueError(f"{info.field_name} can not be empty.")
-        return normalized
+    text: str = Field(description="Text of the question.", min_length=1)
 
 
-class AnswerOption(BaseModel):
+class AnswerOption(ApiModel):
     value: int = Field(ge=1)
-    label: str
-
-    @field_validator("label")
-    @classmethod
-    def non_empty_validator(cls, value: str, info: ValidationInfo):
-        if not (normalized := value.strip()):
-            raise ValueError(f"{info.field_name} can not be empty.")
-        return normalized
+    label: str = Field(description="Label of the answer.", min_length=1)
 
 
-class TestSummary(BaseModel):
-    model_config = ConfigDict(strict=True)
-
+class TestSummary(ApiModel):
     id: int = Field(ge=1, description="ID of the test.")
-    name: str = Field(description="Name of the test.")
-    description: str = Field(description="Description of the test.")
-
-    @field_validator("name", "description")
-    @classmethod
-    def validate_non_empty_string(cls, value: str, info: ValidationInfo) -> str:
-        if not (normalized := value.strip()):
-            raise ValueError(f"{info.field_name} can not be empty.")
-        return normalized
+    name: str = Field(description="Name of the test.", min_length=1)
+    description: str = Field(description="Description of the test.", min_length=1)
 
 
 class Questionnaire(TestSummary):
-    instructions: str = Field(description="Instructions of the test.")
+    instructions: str = Field(description="Instructions of the test.", min_length=1)
     answer_scale: list[AnswerOption] = Field(description="Answer scales of the test.")
     questions: list[Question] = Field(description="Questions of the test.")
-
-    @field_validator("instructions")
-    @classmethod
-    def validate_instructions(
-        cls,
-        value: str,
-        info: ValidationInfo,
-    ) -> str:
-        if not (normalized := value.strip()):
-            raise ValueError(f"{info.field_name} can not be empty.")
-
-        return normalized
