@@ -5,11 +5,12 @@ from html import escape
 from psychonavigatorbot.services.tests_api import QuestionnaireApiClient
 from psychonavigatorbot.models.test import TestSummary
 from psychonavigatorbot.keyboards.builders import create_inline_markup
+from psychonavigatorbot.exceptions.tests import AppError
 
 router = Router()
 
 
-def format_message_tests(tests: tuple[TestSummary, ...]) -> str:
+def format_message_tests(tests: list[TestSummary]) -> str:
     text = "<b>✨ Доступные тесты</b>\n<i>Выбирай, что проходить первым:</i>\n"
 
     for number, test in enumerate(tests, 1):
@@ -27,7 +28,7 @@ def format_message_tests(tests: tuple[TestSummary, ...]) -> str:
 async def display_tests(cq: CallbackQuery, api_client: QuestionnaireApiClient):
     try:
         tests = await api_client.get_tests()
-    except Exception as err:
+    except AppError as err:
         await cq.message.answer(f"Ошибка при чтении данных... {err}")
     else:
         if tests:
@@ -35,6 +36,6 @@ async def display_tests(cq: CallbackQuery, api_client: QuestionnaireApiClient):
             commands = create_inline_markup({test.name: test.id for test in tests})
             await cq.message.answer(text, parse_mode="html", reply_markup=commands)
         else:
-            await cq.message.answer("БЕДА!")
+            await cq.message.answer("Не удалось получить данные.")
     finally:
         await cq.answer()
