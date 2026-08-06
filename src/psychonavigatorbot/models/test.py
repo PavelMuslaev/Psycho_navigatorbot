@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, ValidationInfo
+from pydantic import BaseModel, Field, field_validator, ValidationInfo, ConfigDict
 
 
 class Question(BaseModel):
@@ -26,6 +26,8 @@ class AnswerOption(BaseModel):
 
 
 class TestSummary(BaseModel):
+    model_config = ConfigDict(strict=True)
+
     id: int = Field(ge=1, description="ID of the test.")
     name: str = Field(description="Name of the test.")
     description: str = Field(description="Description of the test.")

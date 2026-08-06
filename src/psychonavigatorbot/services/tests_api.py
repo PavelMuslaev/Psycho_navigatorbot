@@ -35,7 +35,8 @@ class QuestionnaireApiClient:
             return Questionnaire.model_validate(response)
         except ValidationError as e:
             raise ApiContractError(
-                f"{self._url}/tests", extra_message="API returned an invalid test list"
+                f"{self._url}/tests",
+                extra_message="API returned an invalid questionnaire",
             ) from e
 
     async def _get_json(
