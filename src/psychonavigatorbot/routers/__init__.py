@@ -1,7 +1,7 @@
 from aiogram import Router
 
-from psychonavigatorbot.handlers.tests import router as router_tests
-from psychonavigatorbot.handlers.start import router as router_start
+from psychonavigatorbot.routers.tests import router as router_tests
+from psychonavigatorbot.routers.start import router as router_start
 
 
 def setup_router() -> Router:
