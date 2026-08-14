@@ -1,4 +1,6 @@
 import asyncio
+import logging
+
 from aiogram import Dispatcher, Bot, Router
 from aiohttp import ClientSession, ClientTimeout
 
@@ -6,6 +8,12 @@ from psychonavigatorbot.routers import setup_router
 from psychonavigatorbot.config import get_settings
 from psychonavigatorbot.services.tests_api import QuestionnaireApiClient
 
+
+def configure_logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
 
 def create_dispatcher(r: Router) -> Dispatcher:
     dispatcher = Dispatcher()
@@ -28,4 +36,5 @@ async def main():
 
 
 if __name__ == "__main__":
+    configure_logging()
     asyncio.run(main())
