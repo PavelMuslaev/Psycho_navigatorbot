@@ -2,10 +2,7 @@ import asyncio
 
 import pytest
 
-from psychonavigatorbot.callbacks.tests import (
-    TestAction as CallbackAction,
-    TestCallback as CallbackPayload,
-)
+from psychonavigatorbot.callbacks import tests as test_callbacks
 from psychonavigatorbot.exceptions.tests import (
     ApiClientError,
     ApiContractError,
@@ -16,7 +13,7 @@ from psychonavigatorbot.keyboards.tests import (
     create_start_test_keyboard,
     create_test_list_keyboard,
 )
-from psychonavigatorbot.models.test import Questionnaire, TestSummary as SummaryModel
+from psychonavigatorbot.models import test as test_models
 from psychonavigatorbot.routers.tests import (
     display_questionnaire,
     display_tests,
@@ -56,7 +53,7 @@ class FailingApiClient:
 def test_test_list_message_escapes_api_data():
     text = format_message_tests(
         [
-            SummaryModel(
+            test_models.TestSummary(
                 id=1,
                 name="<script>alert('x')</script>",
                 description='Use "quoted" & unsafe <b>HTML</b>',
@@ -72,7 +69,7 @@ def test_test_list_message_escapes_api_data():
 
 def test_questionnaire_message_escapes_api_data():
     text = format_questionnaire_message(
-        Questionnaire(
+        test_models.Questionnaire(
             id=1,
             name="<unsafe>",
             description="Description & details",
@@ -92,7 +89,7 @@ def test_questionnaire_message_escapes_api_data():
 def test_test_list_callback_contains_action_and_id():
     keyboard = create_test_list_keyboard(
         [
-                SummaryModel(
+            test_models.TestSummary(
                 id=42,
                 name="Anxiety screening",
                 description="Short screening questionnaire",
@@ -101,18 +98,22 @@ def test_test_list_callback_contains_action_and_id():
     )
 
     callback_data = keyboard.inline_keyboard[0][0].callback_data
-    parsed = CallbackPayload.unpack(callback_data)
+    assert callback_data is not None
 
-    assert parsed.action == CallbackAction.OPEN
+    parsed = test_callbacks.TestCallback.unpack(callback_data)
+
+    assert parsed.action == test_callbacks.TestAction.OPEN
     assert parsed.test_id == 42
 
 
 def test_start_callback_contains_action_and_id():
     keyboard = create_start_test_keyboard(42)
     callback_data = keyboard.inline_keyboard[0][0].callback_data
-    parsed = CallbackPayload.unpack(callback_data)
+    assert callback_data is not None
 
-    assert parsed.action == CallbackAction.START
+    parsed = test_callbacks.TestCallback.unpack(callback_data)
+
+    assert parsed.action == test_callbacks.TestAction.START
     assert parsed.test_id == 42
 
 
@@ -129,7 +130,7 @@ def test_start_callback_contains_action_and_id():
         ),
         ApiClientError(
             "https://api.example.test/tests",
-            status=500,
+            status=400,
             extra_message="Unexpected Questionnaire API.",
         ),
     ],
@@ -175,9 +176,14 @@ def test_display_tests_error_messages_hide_exception_details(error):
 def test_display_questionnaire_error_messages_hide_exception_details(error):
     async def run_test():
         callback_query = FakeCallbackQuery()
-        callback_data = CallbackPayload(action=CallbackAction.OPEN, test_id=7)
+        callback_data = test_callbacks.TestCallback(
+            action=test_callbacks.TestAction.OPEN,
+            test_id=7,
+        )
 
-        await display_questionnaire(callback_query, callback_data, FailingApiClient(error))
+        await display_questionnaire(
+            callback_query, callback_data, FailingApiClient(error)
+        )
 
         message, _ = callback_query.message.answers[0]
         assert "https://api.example.test" not in message

@@ -1,11 +1,11 @@
 import pytest
 from pydantic import ValidationError
 
-from psychonavigatorbot.models.test import Questionnaire, TestSummary as SummaryModel
+from psychonavigatorbot.models import test as test_models
 
 
 def test_valid_test_summary():
-    test = SummaryModel(
+    test = test_models.TestSummary(
         id=1,
         name="Anxiety screening",
         description="Short screening questionnaire",
@@ -17,7 +17,7 @@ def test_valid_test_summary():
 
 
 def test_valid_questionnaire():
-    questionnaire = Questionnaire(
+    questionnaire = test_models.Questionnaire(
         id=1,
         name="Anxiety screening",
         description="Short screening questionnaire",
@@ -32,7 +32,7 @@ def test_valid_questionnaire():
 
 def test_missing_required_field():
     with pytest.raises(ValidationError):
-        SummaryModel(
+        test_models.TestSummary(
             id=1,
             name="Anxiety screening",
         )
@@ -55,13 +55,13 @@ def test_invalid_type_or_non_positive_id(field, value):
     data[field] = value
 
     with pytest.raises(ValidationError):
-        SummaryModel.model_validate(data)
+        test_models.TestSummary.model_validate(data)
 
 
 @pytest.mark.parametrize("value", ["", "   "])
 def test_empty_required_string(value):
     with pytest.raises(ValidationError):
-        SummaryModel(
+        test_models.TestSummary(
             id=1,
             name=value,
             description="Short screening questionnaire",
