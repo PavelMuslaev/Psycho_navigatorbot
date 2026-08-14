@@ -15,6 +15,7 @@ def configure_logging() -> None:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
+
 def create_dispatcher(r: Router) -> Dispatcher:
     dispatcher = Dispatcher()
     dispatcher.include_router(r)
