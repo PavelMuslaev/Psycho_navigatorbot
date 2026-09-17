@@ -45,9 +45,7 @@ def create_start_test_keyboard(
 
 
 def create_question_keyboard(
-    test_id: int,
-    question_id: int,
-    answer_scale: list[AnswerOption]
+    test_id: int, question_id: int, answer_scale: list[AnswerOption]
 ) -> InlineKeyboardMarkup:
     rows = [
         [

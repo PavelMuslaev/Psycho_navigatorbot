@@ -7,8 +7,10 @@ class AnswerSubmission(ApiModel):
     question_id: int = Field(ge=1)
     value: int = Field(ge=1)
 
+
 class QuestionnaireResultRequest(ApiModel):
     answers: list[AnswerSubmission] = Field(min_length=1)
+
 
 class FaceScore(ApiModel):
     code: str = Field(min_length=1)
@@ -26,6 +28,3 @@ class DomainScore(ApiModel):
 class QuestionnaireResult(ApiModel):
     test_id: int = Field(ge=1)
     domains: list[DomainScore] = Field(min_length=1)
-
-
-

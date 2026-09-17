@@ -4,4 +4,3 @@ from aiogram.fsm.state import State, StatesGroup
 class QuestionnaireState(StatesGroup):
     answering = State()
     submitting = State()
-

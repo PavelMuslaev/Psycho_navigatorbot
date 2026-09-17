@@ -17,4 +17,3 @@ class QuestionnaireAttempt(BaseModel):
     answer_scale: list[AnswerOption] = Field(min_length=1)
     current_index: int = Field(default=0, ge=0)
     answer: QuestionnaireResultRequest = Field(default_factory=list)
-

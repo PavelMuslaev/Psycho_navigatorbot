@@ -3,8 +3,8 @@ import logging
 
 from aiogram import Dispatcher, Bot, Router
 from aiogram.fsm.storage.memory import (
-    MemoryStorage,       # Встроенный формат хранения состояний (При перезапуске сбрасывается)
-    SimpleEventIsolation # SimpleEventIsolation последовательно обрабатывает события одного пользователя.
+    MemoryStorage,  # Встроенный формат хранения состояний (При перезапуске сбрасывается)
+    SimpleEventIsolation,  # SimpleEventIsolation последовательно обрабатывает события одного пользователя.
 )
 from aiohttp import ClientSession, ClientTimeout
 
