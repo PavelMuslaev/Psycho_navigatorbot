@@ -2,6 +2,10 @@ import asyncio
 import logging
 
 from aiogram import Dispatcher, Bot, Router
+from aiogram.fsm.storage.memory import (
+    MemoryStorage,       # Встроенный формат хранения состояний (При перезапуске сбрасывается)
+    SimpleEventIsolation # SimpleEventIsolation последовательно обрабатывает события одного пользователя.
+)
 from aiohttp import ClientSession, ClientTimeout
 
 from psychonavigatorbot.routers import setup_router
@@ -17,7 +21,10 @@ def configure_logging() -> None:
 
 
 def create_dispatcher(r: Router) -> Dispatcher:
-    dispatcher = Dispatcher()
+    dispatcher = Dispatcher(
+        storage=MemoryStorage(),
+        events_isolation=SimpleEventIsolation(),
+    )
     dispatcher.include_router(r)
 
     return dispatcher
