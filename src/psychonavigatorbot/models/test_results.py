@@ -1,3 +1,5 @@
+from uuid import UUID
+from pydantic import AwareDatetime, BaseModel
 from pydantic import Field
 
 from psychonavigatorbot.models.test import ApiModel
@@ -28,3 +30,13 @@ class DomainScore(ApiModel):
 class QuestionnaireResult(ApiModel):
     test_id: int = Field(ge=1)
     domains: list[DomainScore] = Field(min_length=5, max_length=5)
+
+
+class AttemptSummary(BaseModel):
+    attempt_id: UUID
+    completed_at: AwareDatetime
+    test_name: str = Field(min_length=1)
+
+
+class SavedAttempt(AttemptSummary):
+    profile: QuestionnaireResult

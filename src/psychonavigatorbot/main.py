@@ -38,7 +38,7 @@ async def main():
 
     timeout = ClientTimeout(total=5)
     async with ClientSession(timeout=timeout) as session:
-        api_client = QuestionnaireApiClient(settings.api_base_url, session)
+        api_client = QuestionnaireApiClient(settings.api_base_url, session, settings.history_token)
 
         await dispatcher.start_polling(bot, api_client=api_client)
 

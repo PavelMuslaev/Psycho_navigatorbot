@@ -50,7 +50,7 @@ def test_questionnaire_flow(outcome):
 
         client.get_questionnaire.side_effect = fetch
         result = QuestionnaireResult.model_validate(profile())
-        client.calculate_result.side_effect = (
+        client.save_result.side_effect = (
             [ApiUnavailableError("api"), result] if outcome == "retry" else [result]
         )
         await start_questionnaire(cq, TestCallback(action=TestAction.START, test_id=1), state, client)
@@ -66,7 +66,7 @@ def test_questionnaire_flow(outcome):
         if outcome == "cancel":
             await cancel_questionnaire(cq, cancel, state)
             assert await state.get_state() is None
-            client.calculate_result.assert_not_awaited()
+            client.save_result.assert_not_awaited()
             return
 
         for i, question in enumerate(questionnaire.questions):
@@ -81,10 +81,12 @@ def test_questionnaire_flow(outcome):
             assert len((await state.get_data())["answers"]) == 60
             retry = message.edit_text.await_args.kwargs["reply_markup"].inline_keyboard[0][0]
             await submit_result(cq, AttemptCallback.unpack(retry.callback_data), state, client)
-            assert client.calculate_result.await_args_list[0] == client.calculate_result.await_args_list[1]
+            assert client.save_result.await_args_list[0] == client.save_result.await_args_list[1]
         else:
-            client.calculate_result.assert_awaited_once()
-        submitted = client.calculate_result.await_args.args[1]
+            client.save_result.assert_awaited_once()
+        assert client.save_result.await_args.args[0] == cq.from_user.id
+        assert client.save_result.await_args.args[2] == saved["attempt_id"]
+        submitted = client.save_result.await_args.args[1]
         assert [a.question_id for a in submitted] == [q.id for q in questionnaire.questions]
         assert await state.get_state() is None
         assert not await state.get_data()

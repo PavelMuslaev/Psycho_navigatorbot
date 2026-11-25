@@ -1,3 +1,8 @@
+from uuid import UUID
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from psychonavigatorbot.services.tests_api import QuestionnaireApiClient
+from psychonavigatorbot.exceptions.tests import ApiClientError
+from psychonavigatorbot.views.questionnaire import format_result
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import (
@@ -14,10 +19,7 @@ router = Router()
 async def start(message: Message):
     start_cmds = {
         "Список тестов 📝": "tests",
-        "Тут пока пусто 👷‍♂️🚧👷": "void",
-        "Тут пока пусто 👷‍♂️🚧👷2": "void",
-        "Тут пока пусто 👷‍♂️🚧👷3": "void",
-        "Тут пока пусто 👷‍♂️🚧👷4": "void",
+        "Моя история": "history",
     }
 
     await message.answer(
@@ -34,3 +36,50 @@ async def display_void(cq: CallbackQuery):
         "Технические работы👷🚧👷‍♂️.\nУважаемый(ая), мы всё исправим!\n"
     )
     await cq.answer()
+
+
+@router.callback_query(F.data == "history")
+async def show_history(cq: CallbackQuery, api_client: QuestionnaireApiClient):
+    await cq.answer()
+    if not isinstance(cq.message, Message):
+        return
+    if cq.message.chat.type != "private":
+        await cq.message.answer("Откройте историю в личном чате с ботом.")
+        return
+    try:
+        rows = await api_client.get_history(cq.from_user.id)
+    except ApiClientError:
+        await cq.message.answer("Не удалось загрузить историю. Попробуйте ещё раз.")
+        return
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=f"{row.test_name} · {row.completed_at:%d.%m.%Y %H:%M} UTC",
+                callback_data=f"saved:{row.attempt_id}",
+            )
+        ]
+        for row in rows
+    ]
+    await cq.message.answer(
+        "Последние прохождения" if rows else "История пока пуста.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons) if rows else None,
+    )
+
+
+@router.callback_query(F.data.startswith("saved:"))
+async def show_saved(cq: CallbackQuery, api_client: QuestionnaireApiClient):
+    await cq.answer()
+    if not isinstance(cq.message, Message) or cq.message.chat.type != "private":
+        return
+    try:
+        saved = await api_client.get_attempt(
+            cq.from_user.id, UUID(cq.data.removeprefix("saved:"))
+        )
+    except ValueError, ApiClientError:
+        await cq.message.answer(
+            "Не удалось открыть прохождение. Откройте историю ещё раз."
+        )
+        return
+    await cq.message.answer(
+        format_result(saved.test_name, saved.profile), parse_mode="HTML"
+    )

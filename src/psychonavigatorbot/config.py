@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 class Settings:
     bot_token: str
     api_base_url: str
+    history_token: str
 
 
 @lru_cache
@@ -23,7 +24,12 @@ def get_settings() -> Settings:
     if not api_base_url:
         raise RuntimeError("API_BASE_URL is not set!")
 
+    history_token = getenv("HISTORY_TOKEN")
+    if not history_token:
+        raise RuntimeError("HISTORY_TOKEN is not set!")
+
     return Settings(
         bot_token=bot_token,
         api_base_url=api_base_url,
+        history_token=history_token,
     )

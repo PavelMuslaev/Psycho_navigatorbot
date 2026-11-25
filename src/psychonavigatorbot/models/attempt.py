@@ -1,4 +1,4 @@
-from secrets import token_hex
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,7 +25,7 @@ class QuestionnaireAttempt(BaseModel):
             По умолчанию равен `0`.
         answers: Уже данные пользователем ответы.
             По умолчанию пустой список.
-        attempt_id: Идентификатор попытки в виде 8-символьной
+        attempt_id: Идентификатор попытки в виде 32-символьной
             hex-строки. Генерируется автоматически.
         message_id: Идентификатор сообщения Telegram, связанного
             с попыткой. Должен быть больше или равен 1.
@@ -54,8 +54,8 @@ class QuestionnaireAttempt(BaseModel):
     )
 
     attempt_id: str = Field(
-        default_factory=lambda: token_hex(4),
-        pattern="^[a-fA-F0-9]{8}$",
+        default_factory=lambda: uuid4().hex,
+        pattern="^[a-fA-F0-9]{32}$",
     )
     message_id: int = Field(ge=1)
 
