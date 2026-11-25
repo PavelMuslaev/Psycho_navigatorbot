@@ -17,9 +17,10 @@ from psychonavigatorbot.models import test as test_models
 from psychonavigatorbot.routers.tests import (
     display_questionnaire,
     display_tests,
-    format_message_tests,
-    format_questionnaire_message,
 )
+
+
+from psychonavigatorbot.views.tests import format_tests, format_questionnaire
 
 
 class FakeMessage:
@@ -51,7 +52,7 @@ class FailingApiClient:
 
 
 def test_test_list_message_escapes_api_data():
-    text = format_message_tests(
+    text = format_tests(
         [
             test_models.TestSummary(
                 id=1,
@@ -68,7 +69,7 @@ def test_test_list_message_escapes_api_data():
 
 
 def test_questionnaire_message_escapes_api_data():
-    text = format_questionnaire_message(
+    text = format_questionnaire(
         test_models.Questionnaire(
             id=1,
             name="<unsafe>",

@@ -8,7 +8,7 @@ from psychonavigatorbot.callbacks.tests import (
 from psychonavigatorbot.models.attempt import QuestionnaireAttempt
 
 
-def cancel_button(attempt: QuestionnaireAttempt) -> InlineKeyboardMarkup:
+def cancel_button(attempt: QuestionnaireAttempt) -> InlineKeyboardButton:
     return InlineKeyboardButton(
         text="Прервать тест",
         callback_data=AttemptCallback(
@@ -58,7 +58,7 @@ def create_result_keyboard(
                         attempt_id=attempt.attempt_id,
                     ).pack(),
                 ),
-                [cancel_button(attempt)],
-            ]
+            ],
+            [cancel_button(attempt)],
         ]
     )

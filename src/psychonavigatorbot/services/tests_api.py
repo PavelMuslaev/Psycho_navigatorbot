@@ -40,7 +40,10 @@ class QuestionnaireApiClient:
         url = f"{self._url}/tests/{questionnaire_id}"
         response = await self._get_json("GET", url, questionnaire_id=questionnaire_id)
         try:
-            return Questionnaire.model_validate(response)
+            questionnaire = Questionnaire.model_validate(response)
+            if questionnaire.id != questionnaire_id:
+                raise ApiContractError(url, extra_message="Questionnaire ID mismatch")
+            return questionnaire
         except ValidationError as e:
             raise ApiContractError(
                 url,
@@ -66,7 +69,7 @@ class QuestionnaireApiClient:
             ) from error
         else:
             if result.test_id != test_id:
-                raise ApiUnavailableError(url, extra_message="Result test ID mismatch")
+                raise ApiContractError(url, extra_message="Result test ID mismatch")
             return result
 
     async def _get_json(

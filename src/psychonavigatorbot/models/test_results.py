@@ -12,7 +12,7 @@ class QuestionnaireResultRequest(ApiModel):
     answers: list[AnswerSubmission] = Field(min_length=1)
 
 
-class FaceScore(ApiModel):
+class FacetScore(ApiModel):
     code: str = Field(min_length=1)
     name: str = Field(min_length=1)
     score: float = Field(ge=1, le=5)
@@ -22,9 +22,9 @@ class DomainScore(ApiModel):
     code: str = Field(min_length=1)
     name: str = Field(min_length=1)
     score: float = Field(ge=1, le=5)
-    facets: list[FaceScore] = Field(min_length=1)
+    facets: list[FacetScore] = Field(min_length=3, max_length=3)
 
 
 class QuestionnaireResult(ApiModel):
     test_id: int = Field(ge=1)
-    domains: list[DomainScore] = Field(min_length=1)
+    domains: list[DomainScore] = Field(min_length=5, max_length=5)

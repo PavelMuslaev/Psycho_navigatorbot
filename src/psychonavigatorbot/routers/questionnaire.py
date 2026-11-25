@@ -57,7 +57,7 @@ async def load_attempt(
 
     try:
         attempt = QuestionnaireAttempt.model_validate(await state.get_data())
-    except ValidationError, ValueError:
+    except ValueError:
         # Не выводим ValidationError: он может содержать ответы пользователя.
         logger.error(
             "Invalid FSM data: user_id=%s",
@@ -197,6 +197,7 @@ async def answer_question(
     cq: CallbackQuery,
     callback_data: AnswerCallback,
     state: FSMContext,
+    api_client: QuestionnaireApiClient,
 ) -> None:
     attempt = await load_attempt(
         cq,
@@ -254,6 +255,8 @@ async def answer_question(
         await state.set_state(
             QuestionnaireState.ready_to_submit,
         )
+        await calculate_and_display(cq, state, attempt, api_client)
+        return
 
     await show_attempt(
         cq.message,
@@ -290,6 +293,15 @@ async def submit_result(
         "Рассчитываю результат…",
     )
 
+    await calculate_and_display(cq, state, attempt, api_client)
+
+
+async def calculate_and_display(
+    cq: CallbackQuery,
+    state: FSMContext,
+    attempt: QuestionnaireAttempt,
+    api_client: QuestionnaireApiClient,
+) -> None:
     await state.set_state(
         QuestionnaireState.submitting,
     )

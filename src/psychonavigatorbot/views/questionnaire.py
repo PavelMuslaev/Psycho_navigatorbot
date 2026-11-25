@@ -26,10 +26,5 @@ def format_result(name: str, result: QuestionnaireResult) -> str:
         lines.append(f"\n<b>{escape(domain.name)}</b>: {domain.score:.2f}")
         for facet in domain.facets:
             lines.append(f"• {escape(facet.name)}: {facet.score:.2f}")
-            lines.extend(
-                [
-                    "",
-                    "<i>Результат является описательным профилем и не медицинским диагнозом.</i>",
-                ]
-            )
+    lines.extend(["", "<i>Это описательный профиль. Результат не является медицинским диагнозом.</i>"])
     return "\n".join(lines)
