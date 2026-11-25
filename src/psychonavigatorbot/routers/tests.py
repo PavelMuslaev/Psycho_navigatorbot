@@ -1,5 +1,4 @@
 import logging
-from html import escape
 
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
@@ -11,43 +10,17 @@ from psychonavigatorbot.exceptions.tests import (
     ApiNotFoundError,
 )
 from psychonavigatorbot.services.tests_api import QuestionnaireApiClient
-from psychonavigatorbot.models.test import TestSummary, Questionnaire
+from psychonavigatorbot.views.tests import format_tests, format_questionnaire
 from psychonavigatorbot.keyboards.tests import (
     create_test_list_keyboard,
     create_start_test_keyboard,
 )
 from psychonavigatorbot.callbacks.tests import TestCallback, TestAction
 
-
 # __name__ будет содержать имя модуля: psychonavigatorbot.routers.tests
 logger = logging.getLogger(__name__)
 
 router = Router()
-
-
-def format_message_tests(tests: list[TestSummary]) -> str:
-    text = "<b>✨ Доступные тесты</b>\n<i>Выбирай, что проходить первым:</i>\n"
-
-    for number, test in enumerate(tests, 1):
-        text += (
-            f"\n👁️ <b>{number}. {escape(test.name)}</b>\n"
-            f"└ <i>{escape(test.description)}</i>\n"
-        )
-
-    text += "\n<b>👇 Выберите нужный тест ниже</b>"
-
-    return text
-
-
-def format_questionnaire_message(
-    questionnaire: Questionnaire,
-) -> str:
-    return (
-        f"🧠 <b>{escape(questionnaire.name)}</b>\n\n"
-        f"{escape(questionnaire.description)}\n\n"
-        "<b>Инструкция:</b>\n"
-        f"{escape(questionnaire.instructions)}"
-    )
 
 
 @router.callback_query(F.data == "tests")
@@ -83,7 +56,7 @@ async def display_tests(cq: CallbackQuery, api_client: QuestionnaireApiClient) -
         await cq.message.answer("Сейчас нет доступных тестов.")
         return
 
-    text = format_message_tests(tests)
+    text = format_tests(tests)
     commands = create_test_list_keyboard(tests)
 
     await cq.message.answer(
@@ -143,7 +116,7 @@ async def display_questionnaire(
         )
         return
 
-    text = format_questionnaire_message(questionnaire)
+    text = format_questionnaire(questionnaire)
     keyboard = create_start_test_keyboard(questionnaire.id)
 
     await cq.message.answer(
@@ -151,16 +124,3 @@ async def display_questionnaire(
         parse_mode="HTML",
         reply_markup=keyboard,
     )
-
-
-@router.callback_query(TestCallback.filter(F.action == TestAction.START))
-async def start_questionnaire(
-    cq: CallbackQuery,
-    callback_data: TestCallback,
-) -> None:
-    logger.info(
-        "Questionnaire start requested: test_id=%s",
-        callback_data.test_id,
-    )
-
-    await cq.answer("Прохождение теста будет добавлено на следующем этапе.")

@@ -1,4 +1,6 @@
 import json
+from typing import Literal
+
 import aiohttp
 from pydantic import TypeAdapter, ValidationError
 
@@ -7,8 +9,14 @@ from psychonavigatorbot.exceptions.tests import (
     ApiContractError,
     ApiUnavailableError,
     ApiNotFoundError,
+    ApiRequestRejectedError,
 )
 from psychonavigatorbot.models.test import Questionnaire, TestSummary
+from psychonavigatorbot.models.test_results import (
+    AnswerSubmission,
+    QuestionnaireResult,
+    QuestionnaireResultRequest,
+)
 
 TEST_ADAPTER = TypeAdapter(list[TestSummary])
 
@@ -20,7 +28,7 @@ class QuestionnaireApiClient:
 
     async def get_tests(self) -> list[TestSummary]:
         url = f"{self._url}/tests"
-        response = await self._get_json(url)
+        response = await self._get_json("GET", url)
         try:
             return TEST_ADAPTER.validate_python(response)
         except ValidationError as e:
@@ -30,7 +38,7 @@ class QuestionnaireApiClient:
 
     async def get_questionnaire(self, questionnaire_id: int) -> Questionnaire:
         url = f"{self._url}/tests/{questionnaire_id}"
-        response = await self._get_json(url, questionnaire_id=questionnaire_id)
+        response = await self._get_json("GET", url, questionnaire_id=questionnaire_id)
         try:
             return Questionnaire.model_validate(response)
         except ValidationError as e:
@@ -39,14 +47,38 @@ class QuestionnaireApiClient:
                 extra_message="API returned an invalid questionnaire",
             ) from e
 
+    async def calculate_result(
+        self, test_id: int, answers: list[AnswerSubmission]
+    ) -> QuestionnaireResult:
+        url = f"{self._url}/tests/{test_id}/results"
+        request = QuestionnaireResultRequest(answers=answers)
+        response = await self._get_json(
+            "POST",
+            url,
+            questionnaire_id=test_id,
+            payload=request.model_dump(mode="json"),
+        )
+        try:
+            result = QuestionnaireResult.model_validate(response)
+        except ValidationError as error:
+            raise ApiContractError(
+                url, extra_message="API returned an invalid result"
+            ) from error
+        else:
+            if result.test_id != test_id:
+                raise ApiUnavailableError(url, extra_message="Result test ID mismatch")
+            return result
+
     async def _get_json(
         self,
+        method: Literal["GET", "POST"],
         url: str,
         *,
         questionnaire_id: int | None = None,
+        payload: dict[str, object] | None = None,
     ) -> object:
         try:
-            async with self._session.get(url) as response:
+            async with self._session.request(method, url, json=payload) as response:
                 self._check_status_code(
                     response.status,
                     url,
@@ -58,6 +90,7 @@ class QuestionnaireApiClient:
                 except (
                     aiohttp.ContentTypeError,
                     json.JSONDecodeError,
+                    UnicodeDecodeError,
                 ) as error:
                     raise ApiContractError(
                         url,
@@ -81,6 +114,9 @@ class QuestionnaireApiClient:
             raise ApiNotFoundError(
                 url, status=status, extra_message=f"Questionnaire {questionnaire_id}"
             )
+
+        if status in (400, 422):
+            raise ApiRequestRejectedError(url, status=status)
 
         if status >= 500:
             raise ApiUnavailableError(
