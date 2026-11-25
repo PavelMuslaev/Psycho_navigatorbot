@@ -14,6 +14,7 @@ from psychonavigatorbot.exceptions.tests import (
 )
 from psychonavigatorbot.models.test import Questionnaire, TestSummary
 from psychonavigatorbot.models.test_results import (
+    EpiResult,
     AttemptSummary,
     SavedAttempt,
     AnswerSubmission,
@@ -58,7 +59,7 @@ class QuestionnaireApiClient:
 
     async def calculate_result(
         self, test_id: int, answers: list[AnswerSubmission]
-    ) -> QuestionnaireResult:
+    ) -> QuestionnaireResult | EpiResult:
         url = f"{self._url}/tests/{test_id}/results"
         request = QuestionnaireResultRequest(answers=answers)
         response = await self._get_json(
@@ -68,7 +69,8 @@ class QuestionnaireApiClient:
             payload=request.model_dump(mode="json"),
         )
         try:
-            result = QuestionnaireResult.model_validate(response)
+            model = EpiResult if test_id == 2 else QuestionnaireResult
+            result = model.model_validate(response)
         except ValidationError as error:
             raise ApiContractError(
                 url, extra_message="API returned an invalid result"
