@@ -1,3 +1,4 @@
+from uuid import UUID
 import json
 from typing import Literal
 
@@ -13,6 +14,8 @@ from psychonavigatorbot.exceptions.tests import (
 )
 from psychonavigatorbot.models.test import Questionnaire, TestSummary
 from psychonavigatorbot.models.test_results import (
+    AttemptSummary,
+    SavedAttempt,
     AnswerSubmission,
     QuestionnaireResult,
     QuestionnaireResultRequest,
@@ -22,9 +25,12 @@ TEST_ADAPTER = TypeAdapter(list[TestSummary])
 
 
 class QuestionnaireApiClient:
-    def __init__(self, base_url: str, session: aiohttp.ClientSession):
+    def __init__(
+        self, base_url: str, session: aiohttp.ClientSession, history_token: str = ""
+    ):
         self._url = base_url.rstrip("/")
         self._session = session
+        self._history_token = history_token
 
     async def get_tests(self) -> list[TestSummary]:
         url = f"{self._url}/tests"
@@ -72,16 +78,61 @@ class QuestionnaireApiClient:
                 raise ApiContractError(url, extra_message="Result test ID mismatch")
             return result
 
+    async def _history(self, method, path, adapter, payload=None):
+        url = f"{self._url}/users/{path}"
+        data = await self._get_json(
+            method,
+            url,
+            payload=payload,
+            headers={"Authorization": f"Bearer {self._history_token}"},
+        )
+        try:
+            return adapter.validate_python(data)
+        except ValidationError as error:
+            raise ApiContractError(
+                url, extra_message="Invalid attempt history"
+            ) from error
+
+    async def save_result(
+        self, telegram_id: int, answers: list[AnswerSubmission], attempt_id: str
+    ):
+        payload = QuestionnaireResultRequest(answers=answers).model_dump(mode="json")
+        saved = await self._history(
+            "POST",
+            f"{telegram_id}/attempts/{attempt_id}",
+            TypeAdapter(SavedAttempt),
+            payload,
+        )
+        if saved.attempt_id != UUID(attempt_id) or saved.profile.test_id != 1:
+            raise ApiContractError(self._url, extra_message="Saved attempt mismatch")
+        return saved.profile
+
+    async def get_history(self, telegram_id: int) -> list[AttemptSummary]:
+        return await self._history(
+            "GET", f"{telegram_id}/attempts", TypeAdapter(list[AttemptSummary])
+        )
+
+    async def get_attempt(self, telegram_id: int, attempt_id: UUID) -> SavedAttempt:
+        saved = await self._history(
+            "GET", f"{telegram_id}/attempts/{attempt_id}", TypeAdapter(SavedAttempt)
+        )
+        if saved.attempt_id != attempt_id:
+            raise ApiContractError(self._url, extra_message="Saved attempt mismatch")
+        return saved
+
     async def _get_json(
         self,
         method: Literal["GET", "POST"],
         url: str,
         *,
         questionnaire_id: int | None = None,
+        headers: dict[str, str] | None = None,
         payload: dict[str, object] | None = None,
     ) -> object:
         try:
-            async with self._session.request(method, url, json=payload) as response:
+            async with self._session.request(
+                method, url, json=payload, headers=headers
+            ) as response:
                 self._check_status_code(
                     response.status,
                     url,

@@ -48,7 +48,7 @@ class FakeSession:
         self._error = error
         self.requested_urls: list[str] = []
 
-    def request(self, method: str, url: str, *, json=None):
+    def request(self, method: str, url: str, *, json=None, headers=None):
         self.method = method
         self.payload = json
         self.requested_urls.append(url)

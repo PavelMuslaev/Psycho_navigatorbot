@@ -308,9 +308,10 @@ async def calculate_and_display(
 
     try:
         try:
-            result = await api_client.calculate_result(
-                attempt.test_id,
+            result = await api_client.save_result(
+                cq.from_user.id,
                 attempt.answers,
+                attempt.attempt_id,
             )
 
         except ApiClientError as error:
