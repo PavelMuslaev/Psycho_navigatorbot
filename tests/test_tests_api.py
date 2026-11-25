@@ -8,6 +8,7 @@ from psychonavigatorbot.exceptions.tests import (
     ApiClientError,
     ApiContractError,
     ApiNotFoundError,
+    ApiRequestRejectedError,
     ApiUnavailableError,
 )
 from psychonavigatorbot.services.tests_api import QuestionnaireApiClient
@@ -47,7 +48,9 @@ class FakeSession:
         self._error = error
         self.requested_urls: list[str] = []
 
-    def get(self, url: str):
+    def request(self, method: str, url: str, *, json=None):
+        self.method = method
+        self.payload = json
         self.requested_urls.append(url)
         if self._error is not None:
             raise self._error
@@ -192,3 +195,32 @@ def test_get_tests_valid_json_with_invalid_structure():
             await client.get_tests()
 
     asyncio.run(run_test())
+
+
+def test_post_result_contract():
+    from tests.test_questionnaire_flow import profile
+    from psychonavigatorbot.models.test_results import AnswerSubmission
+
+    session = FakeSession(FakeResponse(200, profile()))
+    client = QuestionnaireApiClient("https://api.example.test", session)
+    result = asyncio.run(client.calculate_result(1, [AnswerSubmission(question_id=61, value=2)]))
+    assert session.method == "POST"
+    assert session.requested_urls == ["https://api.example.test/tests/1/results"]
+    assert session.payload == {"answers": [{"question_id": 61, "value": 2}]}
+    assert len(result.domains) == 5
+
+
+@pytest.mark.parametrize(("session", "exception"), [
+    (FakeSession(FakeResponse(422)), ApiRequestRejectedError),
+    (FakeSession(FakeResponse(503)), ApiUnavailableError),
+    (FakeSession(error=TimeoutError()), ApiUnavailableError),
+    (FakeSession(error=aiohttp.ClientConnectionError()), ApiUnavailableError),
+    (FakeSession(FakeResponse(200, json_error=json.JSONDecodeError("bad", "", 0))), ApiContractError),
+    (FakeSession(FakeResponse(200, {"test_id": 1, "domains": []})), ApiContractError),
+])
+def test_post_result_errors(session, exception):
+    from psychonavigatorbot.models.test_results import AnswerSubmission
+
+    client = QuestionnaireApiClient("https://api.example.test", session)
+    with pytest.raises(exception):
+        asyncio.run(client.calculate_result(1, [AnswerSubmission(question_id=61, value=2)]))

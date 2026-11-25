@@ -39,3 +39,9 @@ class ApiNotFoundError(ApiClientError):
     """Запрашиваемый ресурс не найден"""
 
     pass
+
+
+class ApiRequestRejectedError(ApiClientError):
+    """API отклонило переданный запрос: HTTP 400 или 422."""
+
+    pass

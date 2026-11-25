@@ -23,4 +23,7 @@ def get_settings() -> Settings:
     if not api_base_url:
         raise RuntimeError("API_BASE_URL is not set!")
 
-    return Settings(bot_token, api_base_url)
+    return Settings(
+        bot_token=bot_token,
+        api_base_url=api_base_url,
+    )
