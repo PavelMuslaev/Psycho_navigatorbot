@@ -10,6 +10,7 @@ class ApiModel(BaseModel):
 class Question(ApiModel):
     id: int = Field(ge=1)
     text: str = Field(description="Text of the question.", min_length=1)
+    answer_scale: list["AnswerOption"] | None = None
 
 
 class AnswerOption(ApiModel):

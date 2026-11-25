@@ -229,7 +229,7 @@ async def answer_question(
         )
         return
 
-    if callback_data.value not in {option.value for option in attempt.answer_scale}:
+    if callback_data.value not in {option.value for option in (question.answer_scale or attempt.answer_scale)}:
         await cq.answer(
             "Недопустимый вариант ответа.",
         )

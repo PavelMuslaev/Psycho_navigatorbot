@@ -35,7 +35,7 @@ def create_question_keyboard(
                 ).pack(),
             )
         ]
-        for option in attempt.answer_scale
+        for option in (question.answer_scale or attempt.answer_scale)
     ]
 
     rows.append([cancel_button(attempt)])
