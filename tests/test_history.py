@@ -29,12 +29,18 @@ def test_history_screens():
             test_name="BFI-2",
             profile=profile(),
         )
-        client.get_history.return_value = [record]
+        older = record.model_copy(update={"attempt_id": uuid4(), "completed_at": record.completed_at.replace(year=2025)})
+        client.get_history.return_value = [record, older]
         client.get_attempt.return_value = record
         await show_history(cq, client)
         client.get_history.assert_awaited_with(42)
         button = message.answer.await_args.kwargs["reply_markup"].inline_keyboard[0][0]
-        assert "BFI-2" in button.text and "25.11.2026" in button.text
+        text = message.answer.await_args.args[0]
+        assert "№1 · BFI-2</b>\n25.11.2026 · 10:00 UTC" in text
+        assert "№2 · BFI-2</b>\n25.11.2025 · 10:00 UTC" in text
+        second = message.answer.await_args.kwargs["reply_markup"].inline_keyboard[1][0]
+        assert second.text == "Открыть №2" and second.callback_data == f"saved:{older.attempt_id}"
+        assert button.text == "Открыть №1"
         cq.data = button.callback_data
         await show_saved(cq, client)
         client.get_attempt.assert_awaited_once_with(42, record.attempt_id)
