@@ -39,12 +39,12 @@ class AttemptSummary(BaseModel):
     test_name: str = Field(min_length=1)
 
 
-class SavedAttempt(AttemptSummary):
-    profile: QuestionnaireResult
-
-
 class EpiResult(ApiModel):
     test_id: Literal[2]
     extraversion: int = Field(ge=0, le=24)
     neuroticism: int = Field(ge=0, le=24)
     control: int = Field(ge=0, le=9)
+
+
+class SavedAttempt(AttemptSummary):
+    profile: QuestionnaireResult | EpiResult
