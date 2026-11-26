@@ -1,3 +1,5 @@
+from datetime import UTC
+from html import escape
 from uuid import UUID
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from psychonavigatorbot.services.tests_api import QuestionnaireApiClient
@@ -51,18 +53,17 @@ async def show_history(cq: CallbackQuery, api_client: QuestionnaireApiClient):
     except ApiClientError:
         await cq.message.answer("Не удалось загрузить историю. Попробуйте ещё раз.")
         return
-    buttons = [
-        [
-            InlineKeyboardButton(
-                text=f"{row.test_name} · {row.completed_at:%d.%m.%Y %H:%M} UTC",
-                callback_data=f"saved:{row.attempt_id}",
-            )
-        ]
-        for row in rows
-    ]
+    if not rows:
+        await cq.message.answer("История пока пуста.")
+        return
+    blocks = ["Последние прохождения"]
+    buttons = []
+    for number, row in enumerate(rows, start=1):
+        date = row.completed_at.astimezone(UTC)
+        blocks.append(f"<b>№{number} · {escape(row.test_name)}</b>\n{date:%d.%m.%Y · %H:%M} UTC")
+        buttons.append([InlineKeyboardButton(text=f"Открыть №{number}", callback_data=f"saved:{row.attempt_id}")])
     await cq.message.answer(
-        "Последние прохождения" if rows else "История пока пуста.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons) if rows else None,
+        "\n\n".join(blocks), parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
     )
 
 
