@@ -224,3 +224,29 @@ def test_post_result_errors(session, exception):
     client = QuestionnaireApiClient("https://api.example.test", session)
     with pytest.raises(exception):
         asyncio.run(client.calculate_result(1, [AnswerSubmission(question_id=61, value=2)]))
+
+
+def test_epi_retry_and_open_saved_profile():
+    from uuid import uuid4
+    from psychonavigatorbot.models.test_results import AnswerSubmission
+    from psychonavigatorbot.views.questionnaire import format_result
+
+    async def run():
+        attempt_id = uuid4()
+        profile = {"test_id": 2, "extraversion": 9, "neuroticism": 13, "control": 4}
+        record = {"attempt_id": str(attempt_id), "test_name": "EPI", "profile": profile,
+                  "completed_at": "2026-11-26T09:00:00Z"}
+        session = FakeSession(error=TimeoutError())
+        client = QuestionnaireApiClient("https://api.example.test", session, "test")
+        answers = [AnswerSubmission(question_id=i, value=1) for i in range(1, 58)]
+        with pytest.raises(ApiUnavailableError):
+            await client.save_result(42, answers, str(attempt_id), test_id=2)
+        session._error = None
+        session._response = FakeResponse(200, record)
+        saved = await client.save_result(42, answers, str(attempt_id), test_id=2)
+        assert session.requested_urls == [f"https://api.example.test/users/42/attempts/{attempt_id}?test_id=2"] * 2
+        opened = await client.get_attempt(42, attempt_id)
+        assert opened.profile == saved
+        assert "Экстраверсия: 9/24" in format_result(opened.test_name, opened.profile)
+
+    asyncio.run(run())

@@ -96,16 +96,16 @@ class QuestionnaireApiClient:
             ) from error
 
     async def save_result(
-        self, telegram_id: int, answers: list[AnswerSubmission], attempt_id: str
+        self, telegram_id: int, answers: list[AnswerSubmission], attempt_id: str, *, test_id: int = 1
     ):
         payload = QuestionnaireResultRequest(answers=answers).model_dump(mode="json")
         saved = await self._history(
             "POST",
-            f"{telegram_id}/attempts/{attempt_id}",
+            f"{telegram_id}/attempts/{attempt_id}?test_id={test_id}",
             TypeAdapter(SavedAttempt),
             payload,
         )
-        if saved.attempt_id != UUID(attempt_id) or saved.profile.test_id != 1:
+        if saved.attempt_id != UUID(attempt_id) or saved.profile.test_id != test_id:
             raise ApiContractError(self._url, extra_message="Saved attempt mismatch")
         return saved.profile
 
