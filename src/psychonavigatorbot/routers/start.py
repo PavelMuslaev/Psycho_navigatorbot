@@ -40,7 +40,11 @@ async def display_void(cq: CallbackQuery):
     await cq.answer()
 
 
+PAGE_SIZE = 5
+
+
 @router.callback_query(F.data == "history")
+@router.callback_query(F.data.regexp(r"^history:[0-9]{1,9}$"))
 async def show_history(cq: CallbackQuery, api_client: QuestionnaireApiClient):
     await cq.answer()
     if not isinstance(cq.message, Message):
@@ -48,21 +52,31 @@ async def show_history(cq: CallbackQuery, api_client: QuestionnaireApiClient):
     if cq.message.chat.type != "private":
         await cq.message.answer("Откройте историю в личном чате с ботом.")
         return
+    paging = (cq.data or "").startswith("history:")
+    offset = int(cq.data.split(":")[1]) if paging else 0
+    send = cq.message.edit_text if paging else cq.message.answer
     try:
-        rows = await api_client.get_history(cq.from_user.id)
+        rows = await api_client.get_history(cq.from_user.id, limit=PAGE_SIZE + 1, offset=offset)
     except ApiClientError:
         await cq.message.answer("Не удалось загрузить историю. Попробуйте ещё раз.")
         return
-    if not rows:
-        await cq.message.answer("История пока пуста.")
+    if not rows and not offset:
+        await send("История пока пуста.")
         return
     blocks = ["Последние прохождения"]
     buttons = []
-    for number, row in enumerate(rows, start=1):
+    for number, row in enumerate(rows[:PAGE_SIZE], start=offset + 1):
         date = row.completed_at.astimezone(UTC)
         blocks.append(f"<b>№{number} · {escape(row.test_name)}</b>\n{date:%d.%m.%Y · %H:%M} UTC")
         buttons.append([InlineKeyboardButton(text=f"Открыть №{number}", callback_data=f"saved:{row.attempt_id}")])
-    await cq.message.answer(
+    navigation = []
+    if offset:
+        navigation.append(InlineKeyboardButton(text="Назад", callback_data=f"history:{max(0, offset-PAGE_SIZE)}"))
+    if len(rows) > PAGE_SIZE:
+        navigation.append(InlineKeyboardButton(text="Далее", callback_data=f"history:{offset+PAGE_SIZE}"))
+    if navigation:
+        buttons.append(navigation)
+    await send(
         "\n\n".join(blocks), parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
     )
 
