@@ -70,10 +70,41 @@ def test_pages_and_failed_navigation():
             keyboard = sent.await_args.kwargs["reply_markup"].inline_keyboard
             assert [b.text for b in keyboard[-1]] == navigation
             assert [r[0].callback_data for r in keyboard[:-1]] == [
-                f"saved:{entry.attempt_id}" for entry in rows[offset:offset+5]]
+                f"saved:{entry.attempt_id}" + (f":{offset}" if offset else "") for entry in rows[offset:offset+5]]
         message.edit_text.reset_mock()
         client.get_history.side_effect = ApiUnavailableError("history")
         await show_history(cq, client)
         message.edit_text.assert_not_awaited()
+
+    asyncio.run(run())
+
+
+def test_repeated_stale_next_button():
+    from datetime import UTC, datetime
+    from aiogram.exceptions import TelegramBadRequest
+    from aiogram.methods import EditMessageText
+    import pytest
+
+    async def run():
+        rows = [SimpleNamespace(attempt_id=uuid4(), test_name="EPI", completed_at=datetime.now(UTC))
+                for _ in range(5)]
+        message = Mock(spec=Message)
+        message.chat = SimpleNamespace(type="private")
+        method = EditMessageText(chat_id=42, message_id=1, text="История")
+        message.edit_text = AsyncMock(side_effect=[
+            None, TelegramBadRequest(method, "Bad Request: message is not modified"),
+            TelegramBadRequest(method, "Bad Request: message to edit not found"),
+        ])
+        cq = SimpleNamespace(message=message, data="history:5", answer=AsyncMock(), from_user=SimpleNamespace(id=42))
+        client = AsyncMock()
+        client.get_history.side_effect = lambda owner, limit, offset: rows[offset:offset + limit]
+        await show_history(cq, client)
+        first = message.edit_text.await_args
+        buttons = first.kwargs["reply_markup"].inline_keyboard
+        assert [row[0].text for row in buttons] == [f"Открыть №{i}" for i in range(1, 6)]
+        await show_history(cq, client)
+        assert message.edit_text.await_args == first
+        with pytest.raises(TelegramBadRequest, match="message to edit not found"):
+            await show_history(cq, client)
 
     asyncio.run(run())

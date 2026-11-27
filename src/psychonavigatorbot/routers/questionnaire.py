@@ -1,10 +1,10 @@
 import logging
 
 from aiogram import F, Router
-from aiogram.exceptions import TelegramBadRequest
+from psychonavigatorbot.views.screen import edit_screen
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, Message
 from pydantic import ValidationError
 
 from psychonavigatorbot.callbacks.tests import (
@@ -81,25 +81,6 @@ async def load_attempt(
         return None
 
     return attempt
-
-
-async def edit_screen(
-    message: Message,
-    text: str,
-    *,
-    reply_markup: InlineKeyboardMarkup | None = None,
-    parse_mode: str | None = None,
-) -> None:
-    try:
-        await message.edit_text(
-            text,
-            parse_mode=parse_mode,
-            reply_markup=reply_markup,
-        )
-    except TelegramBadRequest as error:
-        # Повторно показывать уже установленный экран безопасно.
-        if "message is not modified" not in error.message.lower():
-            raise
 
 
 async def show_attempt(
