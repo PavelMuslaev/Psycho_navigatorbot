@@ -122,9 +122,15 @@ class QuestionnaireApiClient:
             raise ApiContractError(self._url, extra_message="Saved attempt mismatch")
         return saved
 
+    async def delete_attempt(self, telegram_id: int, attempt_id: UUID) -> None:
+        await self._get_json(
+            "DELETE", f"{self._url}/users/{telegram_id}/attempts/{attempt_id}",
+            headers={"Authorization": f"Bearer {self._history_token}"},
+        )
+
     async def _get_json(
         self,
-        method: Literal["GET", "POST"],
+        method: Literal["GET", "POST", "DELETE"],
         url: str,
         *,
         questionnaire_id: int | None = None,
@@ -135,6 +141,8 @@ class QuestionnaireApiClient:
             async with self._session.request(
                 method, url, json=payload, headers=headers
             ) as response:
+                if method == "DELETE" and response.status == 204:
+                    return None
                 self._check_status_code(
                     response.status,
                     url,

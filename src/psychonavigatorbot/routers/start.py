@@ -82,5 +82,35 @@ async def show_saved(cq: CallbackQuery, api_client: QuestionnaireApiClient):
         )
         return
     await cq.message.answer(
-        format_result(saved.test_name, saved.profile), parse_mode="HTML"
+        format_result(saved.test_name, saved.profile), parse_mode="HTML",
+        reply_markup=create_inline_markup({"Удалить из истории": f"remove:{saved.attempt_id}"})
     )
+
+
+@router.callback_query(F.data.regexp(r"^(remove|keep|erase):"))
+async def manage_saved(cq: CallbackQuery, api_client: QuestionnaireApiClient):
+    if not isinstance(cq.message, Message) or cq.message.chat.type != "private":
+        await cq.answer()
+        return
+    action, raw_id = cq.data.split(":", 1)
+    try:
+        attempt_id = UUID(raw_id)
+    except ValueError:
+        await cq.answer("Некорректная кнопка.")
+        return
+    if action == "erase":
+        try:
+            await api_client.delete_attempt(cq.from_user.id, attempt_id)
+        except ApiClientError as error:
+            if error.status != 404:
+                await cq.answer("Не удалось удалить. Попробуйте ещё раз.", show_alert=True)
+                return
+        await cq.message.edit_text("Запись удалена из истории.")
+        await show_history(cq, api_client)
+        return
+    await cq.answer()
+    if action == "remove":
+        markup = create_inline_markup({"Подтвердить удаление": f"erase:{attempt_id}", "Отмена": f"keep:{attempt_id}"})
+    else:
+        markup = create_inline_markup({"Удалить из истории": f"remove:{attempt_id}"})
+    await cq.message.edit_reply_markup(reply_markup=markup)
