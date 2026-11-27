@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from secrets import token_urlsafe
 from datetime import UTC
+from functools import partial
 from html import escape
+from psychonavigatorbot.views.screen import edit_screen
 from uuid import UUID
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from psychonavigatorbot.services.tests_api import QuestionnaireApiClient
@@ -56,11 +58,12 @@ async def show_history(cq: CallbackQuery, api_client: QuestionnaireApiClient):
         return
     paging = (cq.data or "").startswith("history:")
     offset = int(cq.data.split(":")[1]) if paging else 0
-    send = cq.message.edit_text if paging else cq.message.answer
-    await render_history(cq, api_client, offset, send)
+    await render_history(cq, api_client, offset, edit=paging)
 
 
-async def render_history(cq, api_client, offset, send):
+async def render_history(cq, api_client, offset, *, edit):
+    send = partial(edit_screen, cq.message) if edit else cq.message.answer
+
     async def load(start):
         return await api_client.get_history(
             cq.from_user.id, limit=PAGE_SIZE + 1, offset=start
@@ -223,10 +226,11 @@ async def manage_saved(cq: CallbackQuery, api_client: QuestionnaireApiClient):
             await cq.answer("Не удалось удалить. Попробуйте ещё раз.", show_alert=True)
             return
     await cq.answer("Запись удалена из истории.")
-    await cq.message.edit_text(
+    await edit_screen(
+        cq.message,
         "Запись удалена из истории.",
         reply_markup=create_inline_markup(
             {"Вернуться в историю": f"history:{active.offset}"}
         ),
     )
-    await render_history(cq, api_client, active.offset, cq.message.edit_text)
+    await render_history(cq, api_client, active.offset, edit=True)
