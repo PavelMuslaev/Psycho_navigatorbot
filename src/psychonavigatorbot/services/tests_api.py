@@ -109,9 +109,9 @@ class QuestionnaireApiClient:
             raise ApiContractError(self._url, extra_message="Saved attempt mismatch")
         return saved.profile
 
-    async def get_history(self, telegram_id: int) -> list[AttemptSummary]:
+    async def get_history(self, telegram_id: int, *, limit: int = 10, offset: int = 0) -> list[AttemptSummary]:
         return await self._history(
-            "GET", f"{telegram_id}/attempts", TypeAdapter(list[AttemptSummary])
+            "GET", f"{telegram_id}/attempts?limit={limit}&offset={offset}", TypeAdapter(list[AttemptSummary])
         )
 
     async def get_attempt(self, telegram_id: int, attempt_id: UUID) -> SavedAttempt:
