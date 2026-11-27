@@ -70,7 +70,7 @@ def test_pages_and_failed_navigation():
             keyboard = sent.await_args.kwargs["reply_markup"].inline_keyboard
             assert [b.text for b in keyboard[-1]] == navigation
             assert [r[0].callback_data for r in keyboard[:-1]] == [
-                f"saved:{entry.attempt_id}" for entry in rows[offset:offset+5]]
+                f"saved:{entry.attempt_id}" + (f":{offset}" if offset else "") for entry in rows[offset:offset+5]]
         message.edit_text.reset_mock()
         client.get_history.side_effect = ApiUnavailableError("history")
         await show_history(cq, client)
